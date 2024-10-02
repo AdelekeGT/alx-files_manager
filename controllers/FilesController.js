@@ -54,7 +54,7 @@ class FilesController {
     const { userId } = await userUtils.getUserIdAndKey(request);
 
     if (!basicUtils.isValidId(userId)) {
-      return response.status(401).send({ error: 'Unauthorized' });
+      return response.status(401).json({ error: 'Unauthorized' });
     }
     if (!userId && request.body.type === 'image') {
       await fileQueue.add({});
@@ -64,21 +64,21 @@ class FilesController {
       _id: ObjectId(userId),
     });
 
-    if (!user) return response.status(401).send({ error: 'Unauthorized' });
+    if (!user) return response.status(401).json({ error: 'Unauthorized' });
 
     const { error: validationError, fileParams } = await fileUtils.validateBody(
       request
     );
 
     if (validationError) {
-      return response.status(400).send({ error: validationError });
+      return response.status(400).json({ error: validationError });
     }
 
     if (
       fileParams.parentId !== 0 &&
       !basicUtils.isValidId(fileParams.parentId)
     ) {
-      return response.status(400).send({ error: 'Parent not found' });
+      return response.status(400).json({ error: 'Parent not found' });
     }
 
     const { error, code, newFile } = await fileUtils.saveFile(
@@ -89,7 +89,7 @@ class FilesController {
 
     if (error) {
       if (response.body.type === 'image') await fileQueue.add({ userId });
-      return response.status(code).send(error);
+      return response.status(code).json(error);
     }
 
     if (fileParams.type === 'image') {
@@ -99,7 +99,7 @@ class FilesController {
       });
     }
 
-    return response.status(201).send(newFile);
+    return response.status(201).json(newFile);
   }
 
   /**
@@ -120,11 +120,11 @@ class FilesController {
       _id: ObjectId(userId),
     });
 
-    if (!user) return response.status(401).send({ error: 'Unauthorized' });
+    if (!user) return response.status(401).json({ error: 'Unauthorized' });
 
     // Mongo Condition for Id
     if (!basicUtils.isValidId(fileId) || !basicUtils.isValidId(userId)) {
-      return response.status(404).send({ error: 'Not found' });
+      return response.status(404).json({ error: 'Not found' });
     }
 
     const result = await fileUtils.getFile({
@@ -132,11 +132,11 @@ class FilesController {
       userId: ObjectId(userId),
     });
 
-    if (!result) return response.status(404).send({ error: 'Not found' });
+    if (!result) return response.status(404).json({ error: 'Not found' });
 
     const file = fileUtils.processFile(result);
 
-    return response.status(200).send(file);
+    return response.status(200).json(file);
   }
 
   /**
@@ -163,7 +163,7 @@ class FilesController {
       _id: ObjectId(userId),
     });
 
-    if (!user) return response.status(401).send({ error: 'Unauthorized' });
+    if (!user) return response.status(401).json({ error: 'Unauthorized' });
 
     let parentId = request.query.parentId || '0';
 
@@ -175,7 +175,7 @@ class FilesController {
 
     if (parentId !== 0 && parentId !== '0') {
       if (!basicUtils.isValidId(parentId)) {
-        return response.status(401).send({ error: 'Unauthorized' });
+        return response.status(401).json({ error: 'Unauthorized' });
       }
 
       parentId = ObjectId(parentId);
@@ -185,7 +185,7 @@ class FilesController {
       });
 
       if (!folder || folder.type !== 'folder') {
-        return response.status(200).send([]);
+        return response.status(200).json([]);
       }
     }
 
@@ -205,7 +205,7 @@ class FilesController {
       fileList.push(document);
     });
 
-    return response.status(200).send(fileList);
+    return response.status(200).json(fileList);
   }
 
   /**
@@ -225,9 +225,9 @@ class FilesController {
       true
     );
 
-    if (error) return response.status(code).send({ error });
+    if (error) return response.status(code).json({ error });
 
-    return response.status(code).send(updatedFile);
+    return response.status(code).json(updatedFile);
   }
 
   /**
@@ -247,9 +247,9 @@ class FilesController {
       false
     );
 
-    if (error) return response.status(code).send({ error });
+    if (error) return response.status(code).json({ error });
 
-    return response.status(code).send(updatedFile);
+    return response.status(code).json(updatedFile);
   }
 
   /**
@@ -274,7 +274,7 @@ class FilesController {
 
     // Mongo Condition for Id
     if (!basicUtils.isValidId(fileId)) {
-      return response.status(404).send({ error: 'Not found' });
+      return response.status(404).json({ error: 'Not found' });
     }
 
     const file = await fileUtils.getFile({
@@ -282,24 +282,24 @@ class FilesController {
     });
 
     if (!file || !fileUtils.isOwnerAndPublic(file, userId)) {
-      return response.status(404).send({ error: 'Not found' });
+      return response.status(404).json({ error: 'Not found' });
     }
 
     if (file.type === 'folder') {
       return response
         .status(400)
-        .send({ error: "A folder doesn't have content" });
+        .json({ error: "A folder doesn't have content" });
     }
 
     const { error, code, data } = await fileUtils.getFileData(file, size);
 
-    if (error) return response.status(code).send({ error });
+    if (error) return response.status(code).json({ error });
 
     const mimeType = mime.contentType(file.name);
 
     response.setHeader('Content-Type', mimeType);
 
-    return response.status(200).send(data);
+    return response.status(200).json(data);
   }
 }
 
