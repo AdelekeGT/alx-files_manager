@@ -25,7 +25,7 @@ class AuthController {
     const credentials = Authorization.split(' ')[1];
 
     if (!credentials) {
-      return response.status(401).send({ error: 'Unauthorized' });
+      return response.status(401).json({ error: 'Unauthorized' });
     }
 
     const decodedCredentials = Buffer.from(credentials, 'base64').toString(
@@ -35,7 +35,7 @@ class AuthController {
     const [email, password] = decodedCredentials.split(':');
 
     if (!email || !password) {
-      return response.status(401).send({ error: 'Unauthorized' });
+      return response.status(401).json({ error: 'Unauthorized' });
     }
 
     const sha1Password = sha1(password);
@@ -45,7 +45,7 @@ class AuthController {
       password: sha1Password,
     });
 
-    if (!user) return response.status(401).send({ error: 'Unauthorized' });
+    if (!user) return response.status(401).json({ error: 'Unauthorized' });
 
     const token = uuidv4();
     const key = `auth_${token}`;
@@ -53,7 +53,7 @@ class AuthController {
 
     await redisClient.set(key, user._id.toString(), hoursForExpiration * 3600);
 
-    return response.status(200).send({ token });
+    return response.status(200).json({ token });
   }
 
   /**
