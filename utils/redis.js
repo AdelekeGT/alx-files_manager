@@ -1,52 +1,62 @@
-/* eslint-disable */
-import { createClient } from 'redis';
+import redis from 'redis';
+import { promisify } from 'util';
 
+/**
+ * Class for performing operations with Redis service
+ */
 class RedisClient {
   constructor() {
-    this.createRedis();
+    this.client = redis.createClient();
+    this.getAsync = promisify(this.client.get).bind(this.client);
+
+    this.client.on('error', (error) => {
+      console.log(`Redis client not connected to the server: ${error.message}`);
+    });
+
+    this.client.on('connect', () => {
+      // console.log('Redis client connected to the server');
+    });
   }
 
-  async createRedis() {
-    this.client = createClient();
-    this.client.on('error', (err) => console.error('Redis Client Error:', err));
-
-    try {
-      await this.client.connect();
-    } catch (err) {
-      console.error('Error connecting to Redis:', err);
-    }
-  }
-
+  /**
+   * Checks if connection to Redis is Alive
+   * @return {boolean} true if connection alive or false if not
+   */
   isAlive() {
-    return this.client.isOpen;
+    return this.client.connected;
   }
 
+  /**
+   * gets value corresponding to key in redis
+   * @key {string} key to search for in redis
+   * @return {string}  value of key
+   */
   async get(key) {
-    try {
-      const value = await this.client.get(key);
-      return value;
-    } catch (err) {
-      return null;
-    }
+    const value = await this.getAsync(key);
+    return value;
   }
 
+  /**
+   * Creates a new key in redis with a specific TTL
+   * @key {string} key to be saved in redis
+   * @value {string} value to be asigned to key
+   * @duration {number} TTL of key
+   * @return {undefined}  No return
+   */
   async set(key, value, duration) {
-    try {
-      await this.client.set(key, value, { EX: duration });
-    } catch (err) {
-      console.error(`Error setting key ${key}: ${err.message}`);
-    }
+    this.client.setex(key, duration, value);
   }
 
+  /**
+   * Deletes key in redis service
+   * @key {string} key to be deleted
+   * @return {undefined}  No return
+   */
   async del(key) {
-    try {
-      await this.client.del(key);
-      console.log(`Key ${key} deleted successfully`);
-    } catch (err) {
-      console.error(`Error deleting key ${key}: ${err.message}`);
-    }
+    this.client.del(key);
   }
 }
 
 const redisClient = new RedisClient();
+
 export default redisClient;
